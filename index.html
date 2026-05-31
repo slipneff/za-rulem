@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>За рулём — учим водить и понимаем почему</title>
+  <meta name="description" content="Обучающая платформа: механика машины, логика ПДД и официальные билеты ГИБДД 2026 — с объяснениями «почему так работает».">
+  <meta name="theme-color" content="#0a0e16">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="За рулём">
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#/" data-link>
+        <div class="brand__logo">🚗</div>
+        <div>
+          <div class="brand__name">За рулём</div>
+          <div class="brand__sub">понимаем, а не зубрим</div>
+        </div>
+      </a>
+      <nav class="nav" id="nav"><!-- nav rendered by app.js --></nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn" aria-label="Меню">☰</button>
+        <div class="crumb" id="crumb"></div>
+        <div class="topbar-spacer"></div>
+        <div class="topbar-actions" id="topActions"></div>
+      </header>
+      <div class="view" id="view"><!-- view rendered by app.js --></div>
+    </main>
+
+    <div class="backdrop" id="backdrop"></div>
+  </div>
+
+  <script src="data/tickets.js"></script>
+  <script src="data/glossary.js"></script>
+  <script src="content.js"></script>
+  <script src="widgets.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
