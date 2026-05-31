@@ -61,7 +61,7 @@
 
   /* ---------------------------------------------------------- СЦЕПЛЕНИЕ */
   Widgets.clutch = function (container) {
-    const { svg, controls } = shell(container, '⚙️ Сцепление: управление рассогласованием скоростей', 'интерактив', 300);
+    const { svg, controls } = shell(container, '⚙️ Сцепление: управление рассогласованием скоростей', 'Lada Granta', 300);
     // static scene
     svg.appendChild(S('rect', { x: 0, y: 0, width: 640, height: 300, fill: 'none' }));
     svg.appendChild(S('text', { x: 150, y: 36, fill: P.mut, 'font-size': 13, 'text-anchor': 'middle', 'font-family': 'JetBrains Mono' }, 'ДВИГАТЕЛЬ'));
@@ -155,8 +155,8 @@
 
   /* ---------------------------------------------------------- КОРОБКА ПЕРЕДАЧ */
   Widgets.gearbox = function (container) {
-    const { svg, controls } = shell(container, '⚙️ Коробка передач: подбор передаточного числа', 'интерактив', 300);
-    const ratios = [0, 3.6, 2.1, 1.4, 1.0, 0.8]; // gear 1..5
+    const { svg, controls } = shell(container, '⚙️ Коробка передач: подбор передаточного числа', 'Lada Granta · 5-МКПП', 300);
+    const ratios = [0, 3.636, 1.95, 1.357, 0.941, 0.784]; // Lada Granta (ВАЗ) 5-МКПП, передачи 1..5
     const gDrive = S('g'), gDriven = S('g'); svg.appendChild(gDriven); svg.appendChild(gDrive);
     const lbl = S('text', { x: 320, y: 280, fill: P.text, 'font-size': 16, 'text-anchor': 'middle', 'font-weight': 700 }, ''); svg.appendChild(lbl);
     svg.appendChild(S('text', { x: 180, y: 40, fill: P.mut, 'font-size': 12, 'text-anchor': 'middle', 'font-family': 'JetBrains Mono' }, 'ДВИГАТЕЛЬ'));
@@ -209,7 +209,7 @@
 
   /* ---------------------------------------------------------- 4-ТАКТНЫЙ ДВИГАТЕЛЬ */
   Widgets.engine4 = function (container) {
-    const { svg, controls } = shell(container, '🔥 Четырёхтактный двигатель: впуск-сжатие-рабочий ход-выпуск', 'интерактив', 320);
+    const { svg, controls } = shell(container, '🔥 Четырёхтактный двигатель: впуск-сжатие-рабочий ход-выпуск', 'ВАЗ 1.6 · 8 кл · 90 л.с.', 320);
     const strokes = [
       { name: '1. Впуск', desc: 'Поршень идёт вниз, впускной клапан открыт — цилиндр засасывает смесь воздуха и бензина.', color: P.cyan },
       { name: '2. Сжатие', desc: 'Оба клапана закрыты, поршень идёт вверх и сжимает смесь — давление и температура растут.', color: P.amber },
@@ -264,7 +264,7 @@
 
   /* ---------------------------------------------------------- ТОРМОЗА / ABS */
   Widgets.brakes = function (container) {
-    const { svg, controls } = shell(container, '🛑 Торможение и ABS: почему заблокированное колесо не рулит', 'интерактив', 300);
+    const { svg, controls } = shell(container, '🛑 Торможение и ABS: почему заблокированное колесо не рулит', 'Lada Granta', 300);
     svg.appendChild(S('rect', { x: 0, y: 210, width: 640, height: 90, fill: P.road }));
     for (let i = 0; i < 16; i++) svg.appendChild(S('rect', { x: i * 44, y: 250, width: 24, height: 5, fill: P.line }));
     const carNo = S('g'), carAbs = S('g'), tip = S('text', { x: 320, y: 30, fill: P.text, 'font-size': 14, 'text-anchor': 'middle', 'font-weight': 700 }, ''); svg.appendChild(carNo); svg.appendChild(carAbs); svg.appendChild(tip);
@@ -440,6 +440,49 @@
     function frame(now) { const dt = (now - last) / 1000; last = now; if (running) { t += dt; if (t > 6) running = false; } draw(); raf = requestAnimationFrame(frame); }
     draw(); raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
+  };
+
+  /* ---------------------------------------------------------- ГАБАРИТЫ / ПАРКОВКА */
+  Widgets.dimensions = function (container) {
+    const { svg, controls } = shell(container, '📐 Габариты Гранты и чувство места при парковке', 'Lada Granta', 300);
+    const SC = 78;                       // px на метр
+    const carL = 4.27, carW = 1.70;      // Lada Granta
+    const g = S('g'); svg.appendChild(g);
+    const out = readout(controls);
+    let space = 5.5;
+    slider(controls, 'Длина места для параллельной парковки', 4.4, 7.5, 5.5, 0.1, v => { space = v; draw(); return v.toFixed(1) + ' м'; });
+    function draw() {
+      const cx = 320, curbY = 70, carLpx = carL * SC, carWpx = carW * SC;
+      const carTop = curbY + 18, carBot = carTop + carWpx;
+      const slotPx = space * SC, slotL = cx - slotPx / 2, slotR = cx + slotPx / 2;
+      const marginEach = (space - carL) / 2;
+      let col, msg;
+      if (space < carL + 0.4) { col = P.red; msg = '🔴 Не влезает — места меньше машины с минимальным запасом'; }
+      else if (space < carL + 1.0) { col = P.amber; msg = '🟡 Впритык — придётся «вкатываться» в несколько приёмов'; }
+      else { col = P.green; msg = '🟢 Влезает свободно — есть запас спереди и сзади'; }
+      const parked = (x1, x2) => `<rect x="${x1}" y="${carTop}" width="${x2 - x1}" height="${carWpx}" rx="10" fill="#2a3346" stroke="${P.line}" stroke-width="2"/>`;
+      g.innerHTML =
+        `<rect x="0" y="0" width="640" height="${curbY}" fill="#10131c"/>
+         <line x1="0" y1="${curbY}" x2="640" y2="${curbY}" stroke="${P.amber}" stroke-width="3" stroke-dasharray="2 0"/>
+         <text x="12" y="${curbY - 8}" fill="${P.mut}" font-size="12">бордюр</text>
+         ${parked(slotL - 150, slotL - 6)} ${parked(slotR + 6, slotR + 150)}
+         <!-- slot bracket -->
+         <line x1="${slotL}" y1="${curbY + 6}" x2="${slotR}" y2="${curbY + 6}" stroke="${col}" stroke-width="2"/>
+         <text x="${cx}" y="${curbY + 2}" fill="${col}" font-size="12" text-anchor="middle" font-family="JetBrains Mono">место ${space.toFixed(1)} м</text>
+         <!-- Granta -->
+         <g transform="translate(${cx - carLpx / 2},${carTop})">
+           <rect x="0" y="0" width="${carLpx}" height="${carWpx}" rx="13" fill="${P.amber}" opacity=".92"/>
+           <rect x="${carLpx * 0.18}" y="6" width="${carLpx * 0.5}" height="${carWpx - 12}" rx="8" fill="#1a1100" opacity=".25"/>
+           <rect x="-7" y="${carWpx / 2 - 9}" width="6" height="18" fill="${P.cyan}"/><rect x="${carLpx + 1}" y="${carWpx / 2 - 9}" width="6" height="18" fill="${P.cyan}"/>
+         </g>
+         <!-- dimension labels -->
+         <text x="${cx}" y="${carBot + 26}" fill="${P.text}" font-size="13" text-anchor="middle" font-family="JetBrains Mono">длина ${carL} м</text>
+         <text x="${cx - carLpx / 2 - 16}" y="${carTop + carWpx / 2}" fill="${P.text}" font-size="13" text-anchor="middle" font-family="JetBrains Mono" transform="rotate(-90 ${cx - carLpx / 2 - 16} ${carTop + carWpx / 2})">ширина ${carW} м</text>
+         <text x="320" y="${carBot + 56}" fill="${col}" font-size="15" text-anchor="middle" font-weight="700">${msg}</text>`;
+      out.innerHTML = `<span style="color:${P.mut}">Гранта <b style="color:${P.amber}">${carL}×${carW} м</b>. Для параллельной парковки удобно от <b style="color:${P.green}">~${(carL + 1.1).toFixed(1)} м</b> (запас ~0.5 м спереди и сзади). Запас сейчас: <b style="color:${col}">${marginEach > 0 ? marginEach.toFixed(2) : 0} м</b> с каждой стороны.</span>`;
+    }
+    draw();
+    return () => {};
   };
 
   window.Widgets = Widgets;
