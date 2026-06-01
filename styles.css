@@ -218,6 +218,12 @@ a:hover { color: var(--cyan-soft); }
 .topic-row__sub { color: var(--text-3); font-size: 12.5px; }
 .topic-row__done { color: var(--green); font-size: 18px; }
 
+.theme-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 26px; padding: 16px 20px; border-radius: var(--radius); text-decoration: none; color: var(--text); background: linear-gradient(90deg, var(--amber-glow), transparent), var(--surface); border: 1px solid var(--border-soft); transition: all .15s var(--ease); }
+.theme-cta:hover { border-color: var(--amber); transform: translateY(-2px); color: var(--text); }
+.theme-cta b { color: var(--amber-soft); font-size: 15px; }
+.theme-cta__sub { color: var(--text-3); font-size: 13px; }
+.theme-cta__go { font-size: 26px; color: var(--amber); flex: none; }
+
 /* ============================================================ PROSE / LESSON */
 .lesson { animation: fadeUp .35s var(--ease); }
 .lesson-head { margin-bottom: 22px; }

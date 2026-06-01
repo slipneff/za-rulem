@@ -157,6 +157,7 @@
           <div class="lesson-meta"><span class="pill pill--amber">${cat.title}</span><span class="pill">⏱ ${t.minutes || 5} мин</span>${Store.isRead(t.id) ? '<span class="pill pill--green">✓ прочитано</span>' : ''}</div>
         </div>
         <div class="prose">${t.html}</div>
+        ${(() => { const n = t.theme ? POOL.filter(q => q.theme === t.theme).length : 0; return n ? `<a class="theme-cta" href="#/exam/theme/${themeSlug(t.theme)}" data-link><span><b>🎯 Потренируй эту тему</b><br><span class="theme-cta__sub">${esc(t.theme)} · ${n} вопросов из билетов ГИБДД</span></span><span class="theme-cta__go">→</span></a>` : ''; })()}
         <div id="topicQuiz"></div>
         <div class="q-nav" style="margin-top:34px">
           ${prev ? `<a class="btn" href="#/topic/${prev.id}" data-link>← ${esc(prev.title)}</a>` : '<span></span>'}
