@@ -287,6 +287,9 @@ a:hover { color: var(--cyan-soft); }
 .callout--term   { border-left: 3px solid var(--green); }
 .callout--term::before { content: "📖"; }
 .callout--term .callout__label { color: var(--green); }
+.callout--key    { border-left: 3px solid var(--green); background: rgba(52,211,153,.08); }
+.callout--key::before { content: "✅"; }
+.callout--key .callout__label { color: var(--green); }
 
 /* tables */
 .table { width: 100%; border-collapse: collapse; margin: 1.2em 0; font-size: 14.5px; overflow: hidden; border-radius: var(--radius-sm); }
