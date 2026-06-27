@@ -147,6 +147,8 @@ a:hover { color: var(--cyan-soft); }
 }
 .btn--primary:hover { background: linear-gradient(135deg, var(--amber-soft), #ff8d1a); }
 .btn--cyan { background: linear-gradient(135deg, var(--cyan), #16a0c4); color: #021318; border-color: transparent; }
+.btn--amber { background: linear-gradient(135deg, #ffb020, #ff7a00); color: #1a1100; border-color: transparent; font-weight: 800; }
+.btn--amber:hover { filter: brightness(1.07); }
 .btn--ghost { background: transparent; }
 .btn--sm { padding: 7px 12px; font-size: 13px; border-radius: 9px; }
 .btn--block { width: 100%; }
@@ -223,6 +225,10 @@ a:hover { color: var(--cyan-soft); }
 .theme-cta b { color: var(--amber-soft); font-size: 15px; }
 .theme-cta__sub { color: var(--text-3); font-size: 13px; }
 .theme-cta__go { font-size: 26px; color: var(--amber); flex: none; }
+.theme-cta--blitz { margin-top: 12px; background: linear-gradient(90deg, var(--cyan-glow), transparent), var(--surface); }
+.theme-cta--blitz:hover { border-color: var(--cyan); }
+.theme-cta--blitz b { color: var(--cyan-soft); }
+.theme-cta--blitz .theme-cta__go { color: var(--cyan); }
 
 /* ============================================================ PROSE / LESSON */
 .lesson { animation: fadeUp .35s var(--ease); }
@@ -368,6 +374,24 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border: 0; bord
 .q-explain__label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--cyan); margin-bottom: 6px; }
 .q-explain p { margin: 0; color: var(--text-2); font-size: 14.5px; white-space: pre-line; }
 .q-nav { display: flex; gap: 10px; margin-top: 20px; }
+
+/* --- Молотилка (blitz) --- */
+.blitz-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; position: sticky; top: 8px; z-index: 5; }
+.blitz-stat { flex: 1 1 84px; min-width: 84px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 9px 12px; text-align: center; }
+.blitz-stat__n { display: block; font-family: var(--mono); font-weight: 800; font-size: 19px; line-height: 1.1; }
+.blitz-stat__n.ok { color: var(--green); }
+.blitz-stat__n.err { color: var(--red); }
+.blitz-stat__l { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); margin-top: 3px; }
+.blitz-stat--streak { background: var(--amber-glow); border-color: transparent; }
+.blitz-stat--streak.hot { animation: blitzPulse 1s var(--ease) infinite; box-shadow: 0 0 0 1px var(--amber-soft) inset; }
+.blitz-stat--streak.hot .blitz-stat__n { color: var(--amber-soft); }
+@keyframes blitzPulse { 0%,100% { box-shadow: 0 0 0 1px var(--amber-soft) inset; } 50% { box-shadow: 0 0 16px -2px var(--amber-glow), 0 0 0 1px var(--amber) inset; } }
+.kbd { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 5px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.14); margin-left: 6px; }
+.blitz-card .option { transition: all .1s var(--ease); }
+.blitz-modes { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.blitz-mode { padding: 8px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 700; text-decoration: none; color: var(--text-2); background: var(--surface); border: 1px solid var(--border-soft); transition: all .14s var(--ease); }
+.blitz-mode:hover { border-color: var(--amber); color: var(--text); }
+.blitz-mode.is-active { background: var(--amber-glow); color: var(--amber-soft); border-color: transparent; }
 
 .result { text-align: center; padding: 30px 20px; animation: fadeUp .4s var(--ease); }
 .result__icon { font-size: 64px; }

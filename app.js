@@ -14,7 +14,7 @@
       try { this.data = JSON.parse(localStorage.getItem(KEY)) || {}; }
       catch (e) { this.data = {}; }
       this.data.read ||= {}; this.data.q ||= {}; this.data.mistakes ||= {};
-      this.data.ticketBest ||= {}; this.data.exams ||= [];
+      this.data.ticketBest ||= {}; this.data.exams ||= []; this.data.blitzBest ||= 0;
       return this;
     },
     save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) {} },
@@ -78,6 +78,7 @@
     html += item('#/exam/sim', '🎯', 'Экзамен-симуляция');
     html += item('#/exam/themes', '🗂', 'По темам', THEMES.length);
     html += item('#/exam/random', '🔀', 'Тренировка');
+    html += item('#/exam/blitz', '⚡', 'Молотилка');
     html += item('#/exam/mistakes', '🔁', 'Мои ошибки', Store.stats().mistakes || '');
     html += `</div><div class="nav-group"><div class="nav-group-title">Прогресс</div>`;
     html += item('#/progress', '📊', 'Статистика');
@@ -106,6 +107,7 @@
         <p>Механика машины простыми словами, логика ПДД через «зачем это придумали», и все <b>официальные билеты ГИБДД 2026</b> с разбором каждого ответа. Сначала суть — правило выводится само.</p>
         <div class="hero__cta">
           <a class="btn btn--primary" href="#/cat/mech" data-link>⚙️ Начать с механики</a>
+          <a class="btn btn--amber" href="#/exam/blitz" data-link>⚡ Молотилка вопросов</a>
           <a class="btn btn--cyan" href="#/exam/sim" data-link>🎯 Пробный экзамен</a>
           <a class="btn btn--ghost" href="#/exam" data-link>📋 40 билетов</a>
         </div>
@@ -157,7 +159,7 @@
           <div class="lesson-meta"><span class="pill pill--amber">${cat.title}</span><span class="pill">⏱ ${t.minutes || 5} мин</span>${Store.isRead(t.id) ? '<span class="pill pill--green">✓ прочитано</span>' : ''}</div>
         </div>
         <div class="prose">${t.html}</div>
-        ${(() => { const n = t.theme ? POOL.filter(q => q.theme === t.theme).length : 0; return n ? `<a class="theme-cta" href="#/exam/theme/${themeSlug(t.theme)}" data-link><span><b>🎯 Потренируй эту тему</b><br><span class="theme-cta__sub">${esc(t.theme)} · ${n} вопросов из билетов ГИБДД</span></span><span class="theme-cta__go">→</span></a>` : ''; })()}
+        ${(() => { const n = t.theme ? POOL.filter(q => q.theme === t.theme).length : 0; return n ? `<a class="theme-cta" href="#/exam/theme/${themeSlug(t.theme)}" data-link><span><b>🎯 Потренируй эту тему</b><br><span class="theme-cta__sub">${esc(t.theme)} · ${n} вопросов из билетов ГИБДД</span></span><span class="theme-cta__go">→</span></a><a class="theme-cta theme-cta--blitz" href="#/exam/blitz/theme/${themeSlug(t.theme)}" data-link><span><b>⚡ Молотилка по теме</b><br><span class="theme-cta__sub">быстрый прогон потоком · умный порядок</span></span><span class="theme-cta__go">→</span></a>` : ''; })()}
         <div id="topicQuiz"></div>
         <div class="q-nav" style="margin-top:34px">
           ${prev ? `<a class="btn" href="#/topic/${prev.id}" data-link>← ${esc(prev.title)}</a>` : '<span></span>'}
@@ -197,6 +199,7 @@
         <div class="lesson-meta"><span class="pill pill--amber">${esc(TDATA.version)}</span><span class="pill">кат. ${esc(TDATA.category)}</span><span class="pill">${POOL.length} вопросов</span></div></div>
       <div class="card" style="margin-bottom:22px"><div style="display:flex;gap:12px;flex-wrap:wrap">
         <a class="btn btn--primary" href="#/exam/sim" data-link>🎯 Экзамен-симуляция (правила 2026)</a>
+        <a class="btn btn--amber" href="#/exam/blitz" data-link>⚡ Молотилка</a>
         <a class="btn btn--cyan" href="#/exam/random" data-link>🔀 Случайная тренировка</a>
         <a class="btn" href="#/exam/themes" data-link>🗂 По темам</a>
         <a class="btn" href="#/exam/mistakes" data-link>🔁 Мои ошибки (${Store.stats().mistakes})</a>
@@ -222,6 +225,7 @@
       </a>`;
     }).join('');
     view.innerHTML = `<div class="lesson-head"><h1>🗂 Тренировка по темам</h1><p style="color:var(--text-2)">Официальная тематика билетов — отрабатывай слабые места точечно.</p></div>
+      <div class="blitz-modes"><a class="blitz-mode is-active" href="#/exam/themes" data-link>📋 Обычный разбор</a><a class="blitz-mode" href="#/exam/blitz/themes" data-link>⚡ Гонять молотилкой</a></div>
       <div class="topic-list">${rows}</div>`;
   }
 
@@ -349,6 +353,117 @@
     startTimer(); render();
   }
 
+  /* -------------------------------------------------- BLITZ (молотилка) */
+  // Бесконечный быстрый прогон: ответил → мгновенный фидбэк → автопереход.
+  // Клавиши 1–9 — ответ, Enter/Пробел — дальше. Серия (streak), spaced-repetition
+  // ошибок, интеграция со Store (ошибки и статистика учитываются как везде).
+  function runBlitz(pool, opts) {
+    opts = opts || {};
+    const smart = opts.smart !== false;
+    const active = opts.active || 'all';
+    crumb.innerHTML = `<a href="#/exam" data-link>Билеты</a> <span>›</span> <b>${esc(opts.crumb || 'Молотилка')}</b>`;
+    topActions.innerHTML = '';
+    const tab = (h, label) => `<a class="blitz-mode ${active === h ? 'is-active' : ''}" href="#/exam/blitz${h === 'all' ? '' : '/' + h}" data-link>${label}</a>`;
+    view.innerHTML = `
+      <div class="lesson-head"><h1>${opts.title || '⚡ Молотилка'}</h1>
+        <div class="lesson-meta"><span class="pill">${pool.length} вопросов · поток без конца</span>
+          ${smart ? '<span class="pill pill--cyan">🧠 умный порядок: слабое вперёд</span>' : ''}
+          <span class="pill pill--amber">клавиши <b>1–4</b> · <b>Enter</b> дальше</span></div></div>
+      <div class="blitz-modes">${tab('all', '🎲 Все вопросы')}${tab('themes', '🗂 По темам')}${tab('mistakes', '🔁 Мои ошибки')}</div>
+      <div id="blitzStats" class="blitz-bar"></div>
+      <div id="blitzHost"></div>`;
+    const host = $('#blitzHost'), statsEl = $('#blitzStats');
+    let queue = [], cur = null, locked = false, advTimer = null;
+    const sess = { answered: 0, correct: 0, streak: 0, best: 0 };
+    const mastered = new Set();
+
+    // приоритет вопроса для умного порядка: меньше = раньше
+    function priority(q) {
+      if (Store.data.mistakes[q.key]) return 0;            // ошибался — в первую очередь
+      const st = Store.data.q[q.key];
+      if (!st) return 1;                                    // ещё не видел
+      if (st.ok < st.seen) return 2;                        // были осечки
+      return 3;                                              // освоено
+    }
+    function refill() {
+      let avail = pool.filter(q => !mastered.has(q.key));
+      if (!avail.length) { mastered.clear(); avail = pool.slice(); }
+      if (!smart) { queue = shuffle(avail); return; }
+      const groups = [[], [], [], []];
+      avail.forEach(q => groups[priority(q)].push(q));
+      queue = groups.reduce((acc, g) => acc.concat(shuffle(g)), []);
+    }
+    function nextQ() {
+      if (advTimer) { clearTimeout(advTimer); advTimer = null; }
+      locked = false;
+      if (!queue.length) refill();
+      cur = queue.shift();
+      render();
+    }
+    function renderStats() {
+      const acc = sess.answered ? Math.round(sess.correct / sess.answered * 100) : 0;
+      const rec = Math.max(sess.best, Store.data.blitzBest || 0);
+      statsEl.innerHTML = `
+        <div class="blitz-stat blitz-stat--streak ${sess.streak >= 5 ? 'hot' : ''}"><span class="blitz-stat__n">🔥 ${sess.streak}</span><span class="blitz-stat__l">серия</span></div>
+        <div class="blitz-stat"><span class="blitz-stat__n">🏆 ${rec}</span><span class="blitz-stat__l">рекорд</span></div>
+        <div class="blitz-stat"><span class="blitz-stat__n ok">✓ ${sess.correct}</span><span class="blitz-stat__l">верно</span></div>
+        <div class="blitz-stat"><span class="blitz-stat__n err">✗ ${sess.answered - sess.correct}</span><span class="blitz-stat__l">мимо</span></div>
+        <div class="blitz-stat"><span class="blitz-stat__n">${acc}%</span><span class="blitz-stat__l">точность</span></div>`;
+    }
+    function render() {
+      renderStats();
+      const q = cur;
+      host.innerHTML = `<div class="card q-card blitz-card">
+        <div class="q-head"><span class="q-num">№ ${sess.answered + 1}</span>${q.theme ? `<span class="q-theme">${esc(q.theme)}</span>` : ''}</div>
+        ${q.img ? `<img class="q-img" src="${q.img}" alt="" onerror="this.style.display='none'">` : ''}
+        <div class="q-text">${esc(q.q)}</div>
+        <div class="options">${q.options.map((o, k) => `<button class="option" data-opt="${k}"><span class="option__key">${k + 1}</span><span>${esc(o)}</span></button>`).join('')}</div>
+        <div id="blitzExplain"></div>
+      </div>`;
+      host.querySelectorAll('.option').forEach(b => b.onclick = () => choose(parseInt(b.dataset.opt)));
+      if (!opts.compact) window.scrollTo(0, 0);
+    }
+    function choose(k) {
+      if (locked) return;
+      locked = true;
+      const q = cur, ok = k === q.correct;
+      sess.answered++;
+      if (ok) {
+        sess.correct++; sess.streak++; sess.best = Math.max(sess.best, sess.streak); mastered.add(q.key);
+        if (sess.best > (Store.data.blitzBest || 0)) { Store.data.blitzBest = sess.best; Store.save(); }
+      } else { sess.streak = 0; }
+      Store.answer(q.key || `blitz-${sess.answered}`, ok, ok ? null : { q: q.q, img: q.img, options: q.options, correct: q.correct, explain: q.explain, theme: q.theme, pddRef: q.pddRef, key: q.key });
+      host.querySelectorAll('.option').forEach((b, idx) => {
+        b.classList.add('is-locked');
+        if (idx === q.correct) b.classList.add('is-correct');
+        else if (idx === k) b.classList.add('is-wrong');
+      });
+      renderStats(); renderNav();
+      if (ok) {
+        advTimer = setTimeout(nextQ, 650);
+      } else {
+        // ошибку вернём в очередь через несколько вопросов — закрепить
+        const back = Math.min(queue.length, 6 + Math.floor(Math.random() * 6));
+        queue.splice(back, 0, q);
+        $('#blitzExplain').innerHTML = `<div class="q-explain"><div class="q-explain__label">✗ Правильный ответ: ${q.correct + 1}</div><p>${esc(q.explain || '')}</p>${q.pddRef ? `<p style="margin-top:6px;color:var(--text-3)">📖 Пункт/знак ПДД: ${esc(q.pddRef)}</p>` : ''}</div>
+          <div class="q-nav"><button class="btn btn--primary" data-next>Дальше → <span class="kbd">Enter</span></button></div>`;
+        $('[data-next]').onclick = nextQ;
+      }
+    }
+    function onKey(e) {
+      if (e.key >= '1' && e.key <= '9') {
+        const k = parseInt(e.key) - 1;
+        if (!locked && cur && k < cur.options.length) { e.preventDefault(); choose(k); }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (locked) { e.preventDefault(); nextQ(); }
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    cleanups.push(() => document.removeEventListener('keydown', onKey));
+    cleanups.push(() => { if (advTimer) clearTimeout(advTimer); });
+    nextQ();
+  }
+
   /* -------------------------------------------------- exam launchers */
   function examTicket(n) {
     const t = TDATA.tickets.find(x => x.num == n); if (!t) return renderHome();
@@ -391,6 +506,38 @@
     const host = document.createElement('div'); view.appendChild(host);
     if (!ms.length) { host.innerHTML = `<div class="empty"><div class="empty__ico">🎉</div>Ошибок нет! Прорешай билеты или симуляцию — сюда попадут вопросы, где ошибёшься, чтобы их закрепить.</div>`; return; }
     runQuiz(host, shuffle(ms), { mode: 'practice', showBar: true });
+  }
+  function examBlitz() { runBlitz(POOL, { crumb: 'Молотилка', title: '⚡ Молотилка', active: 'all' }); }
+  function examBlitzMistakes() {
+    const ms = Store.mistakes();
+    if (!ms.length) return examMistakes();
+    runBlitz(ms, { crumb: 'Молотилка ошибок', title: '⚡ Молотилка ошибок', active: 'mistakes' });
+  }
+  function examBlitzTheme(slug) {
+    let dec = slug; try { dec = decodeURIComponent(slug); } catch (e) {}
+    const theme = byThemeSlug[dec] || byThemeSlug[slug]; if (!theme) return renderBlitzThemes();
+    runBlitz(POOL.filter(q => q.theme === theme), { crumb: `Молотилка · ${theme}`, title: `⚡ ${esc(theme)}`, active: 'themes' });
+  }
+  function renderBlitzThemes() {
+    crumb.innerHTML = `<a href="#/exam" data-link>Билеты</a> <span>›</span> <a href="#/exam/blitz" data-link>Молотилка</a> <span>›</span> <b>По темам</b>`;
+    topActions.innerHTML = '';
+    const rows = THEMES.map(t => {
+      const qs = POOL.filter(q => q.theme === t);
+      const keys = qs.map(q => q.key);
+      const seen = keys.filter(k => Store.data.q[k]);
+      const ok = seen.filter(k => Store.data.q[k].ok > 0).length;
+      const acc = seen.length ? Math.round(ok / seen.length * 100) : 0;
+      const weak = keys.filter(k => Store.data.mistakes[k]).length;
+      return `<a class="topic-row" href="#/exam/blitz/theme/${themeSlug(t)}" data-link>
+        <span class="topic-row__ico">⚡</span>
+        <span class="topic-row__body"><span class="topic-row__title">${esc(t)}</span>
+          <span class="topic-row__sub">${qs.length} вопросов${seen.length ? ` · точность ${acc}%` : ''}${weak ? ` · 🔁 ${weak} в ошибках` : ''}</span></span>
+        <span class="topic-row__done" style="color:${acc >= 80 ? 'var(--green)' : acc >= 50 ? 'var(--amber)' : 'var(--text-3)'};font-family:var(--mono);font-size:13px">${seen.length ? acc + '%' : qs.length}</span>
+      </a>`;
+    }).join('');
+    view.innerHTML = `<div class="lesson-head"><h1>⚡ Молотилка по темам</h1><p style="color:var(--text-2)">Гоняй вопросы одной темы потоком. Внутри — умный порядок: ошибки и непройденное вперёд.</p></div>
+      <div class="blitz-modes"><a class="blitz-mode" href="#/exam/blitz" data-link>🎲 Все вопросы</a><a class="blitz-mode is-active" href="#/exam/blitz/themes" data-link>🗂 По темам</a><a class="blitz-mode" href="#/exam/blitz/mistakes" data-link>🔁 Мои ошибки</a></div>
+      <div class="topic-list">${rows}</div>`;
   }
 
   /* -------------------------------------------------- PROGRESS */
@@ -438,6 +585,10 @@
     else if (parts[0] === 'exam' && !parts[1]) renderExamHub();
     else if (parts[0] === 'exam' && parts[1] === 'sim') examSim();
     else if (parts[0] === 'exam' && parts[1] === 'random') examRandom();
+    else if (parts[0] === 'exam' && parts[1] === 'blitz' && parts[2] === 'mistakes') examBlitzMistakes();
+    else if (parts[0] === 'exam' && parts[1] === 'blitz' && parts[2] === 'themes') renderBlitzThemes();
+    else if (parts[0] === 'exam' && parts[1] === 'blitz' && parts[2] === 'theme') examBlitzTheme(parts[3]);
+    else if (parts[0] === 'exam' && parts[1] === 'blitz') examBlitz();
     else if (parts[0] === 'exam' && parts[1] === 'themes') renderThemes();
     else if (parts[0] === 'exam' && parts[1] === 'theme') examTheme(parts[2]);
     else if (parts[0] === 'exam' && parts[1] === 'mistakes') examMistakes();
