@@ -389,9 +389,13 @@
       let avail = pool.filter(q => !mastered.has(q.key));
       if (!avail.length) { mastered.clear(); avail = pool.slice(); }
       if (!smart) { queue = shuffle(avail); return; }
-      const groups = [[], [], [], []];
-      avail.forEach(q => groups[priority(q)].push(q));
-      queue = groups.reduce((acc, g) => acc.concat(shuffle(g)), []);
+      // взвешенно-случайный порядок: слабое/ошибки выпадают чаще, но порядок
+      // каждый раз разный (первый вопрос не повторяется). Вес по приоритету:
+      const W = [8, 5, 3, 1];                       // ошибка, не видел, были осечки, освоено
+      queue = avail
+        .map(q => ({ q, k: Math.pow(Math.random(), 1 / W[priority(q)]) }))
+        .sort((a, b) => b.k - a.k)
+        .map(x => x.q);
     }
     function nextQ() {
       if (advTimer) { clearTimeout(advTimer); advTimer = null; }
