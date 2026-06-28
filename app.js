@@ -55,6 +55,13 @@
   const plural = (n, f) => { const a = Math.abs(n) % 100, b = a % 10; return n + ' ' + (a > 10 && a < 20 ? f[2] : b > 1 && b < 5 ? f[1] : b === 1 ? f[0] : f[2]); };
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
 
+  /* -------------------------------------------------- offline precache bridge (page ↔ SW) */
+  const hasSW = 'serviceWorker' in navigator;
+  const swReady = hasSW ? navigator.serviceWorker.ready.catch(() => null) : Promise.resolve(null);
+  function swSend(msg) { if (!hasSW) return; swReady.then(reg => { const sw = (reg && reg.active) || navigator.serviceWorker.controller; if (sw) sw.postMessage(msg); }); }
+  let offlineUI = null;                    // колбэк, который рисует прогресс на странице статистики
+  if (hasSW) navigator.serviceWorker.addEventListener('message', (e) => { if (offlineUI) offlineUI(e.data || {}); });
+
   /* -------------------------------------------------- question pool from tickets */
   const POOL = [];
   TDATA.tickets.forEach(t => t.questions.forEach((q, i) => POOL.push({
@@ -570,11 +577,40 @@
         <div class="tile"><div class="tile__num green">${st.acc}%</div><div class="tile__label">точность</div></div>
         <div class="tile"><div class="tile__num">${st.examsPassed}</div><div class="tile__label">экзаменов сдано</div></div>
       </div>
+      <div class="section-title">📥 Офлайн-доступ</div>
+      <div class="card">
+        <p style="margin:0 0 12px;color:var(--text-2)">Скачай все уроки, билеты и <b>картинки</b> в память телефона — заниматься можно будет без интернета (в дороге, в метро).</p>
+        <div class="progress" style="margin-bottom:12px"><div class="progress__bar" id="offBar" style="width:0%;background:var(--green)"></div></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="btn btn--primary" id="offBtn">📥 Скачать всё для офлайна</button>
+          <span id="offStatus" style="font-size:13px;color:var(--text-3)">${hasSW ? 'Проверяю…' : 'Доступно после установки на экран «Домой»'}</span>
+        </div>
+      </div>
       <div class="section-title">🎯 Точность по темам <span class="pill">слабые сверху</span></div>
       <div class="card">${bars}</div>
       <div class="section-title">🕑 История экзаменов</div>
       <div class="card"><table class="table"><thead><tr><th>Дата</th><th>Результат</th><th>Итог</th></tr></thead><tbody>${exams}</tbody></table></div>`;
     $('#resetBtn').onclick = () => { if (confirm('Сбросить весь прогресс?')) { localStorage.removeItem(KEY); Store.load(); renderNav(); renderProgress(); } };
+
+    // офлайн-докачка с прогрессом
+    const offBtn = $('#offBtn'), offBar = $('#offBar'), offStatus = $('#offStatus');
+    if (hasSW && offBtn) {
+      const setOff = (cached, total, busy) => {
+        const pct = total ? Math.round(cached / total * 100) : 0;
+        offBar.style.width = pct + '%';
+        if (busy) { offStatus.textContent = `Скачиваю… ${cached}/${total}`; }
+        else if (total && cached >= total) { offStatus.textContent = `✓ Готово к офлайну · ${cached}/${total}`; offBtn.textContent = '✅ Всё скачано'; offBtn.disabled = false; }
+        else { offStatus.textContent = `В памяти ${cached}/${total || '?'}`; offBtn.textContent = cached ? '📥 Докачать для офлайна' : '📥 Скачать всё для офлайна'; offBtn.disabled = false; }
+      };
+      offlineUI = (m) => {
+        if (m.type === 'precacheProgress') setOff(m.cached, m.total, true);
+        else if (m.type === 'precacheDone') setOff(m.cached, m.total, false);
+        else if (m.type === 'cacheStatus') setOff(m.cached, m.total, false);
+      };
+      offBtn.onclick = () => { offBtn.disabled = true; offStatus.textContent = 'Запускаю…'; swSend({ type: 'precacheAll' }); };
+      swSend({ type: 'cacheStatus' });
+      cleanups.push(() => { offlineUI = null; });
+    }
   }
 
   /* -------------------------------------------------- ROUTER */
