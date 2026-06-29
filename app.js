@@ -5,6 +5,8 @@
   'use strict';
   const CONTENT = window.CONTENT || { categories: [], topics: [] };
   const TDATA = window.TICKETS_DATA || { tickets: [], version: '', category: '' };
+  const SIGNS = window.SIGNS || [];        // справочник знаков по разделам
+  const signsCount = SIGNS.reduce((n, c) => n + c.signs.length, 0);
 
   /* -------------------------------------------------- Store (localStorage) */
   const KEY = 'driver_progress_v1';
@@ -80,6 +82,7 @@
     let html = item('#/', '🏠', 'Главная');
     html += `<div class="nav-group"><div class="nav-group-title">Обучение</div>`;
     CONTENT.categories.forEach(c => { html += item('#/cat/' + c.id, c.icon, c.title, (CONTENT.topics.filter(t => t.cat === c.id).length) || ''); });
+    if (signsCount) html += item('#/signs', '🚸', 'Все знаки', signsCount);
     html += `</div><div class="nav-group"><div class="nav-group-title">Экзамен ПДД 2026</div>`;
     html += item('#/exam', '📋', 'Билеты', '40');
     html += item('#/exam/sim', '🎯', 'Экзамен-симуляция');
@@ -148,6 +151,44 @@
       </a>`).join('');
     view.innerHTML = `<div class="lesson-head"><h1>${cat.icon} ${cat.title}</h1><p style="color:var(--text-2)">${cat.sub}</p></div>
       <div class="topic-list">${rows || '<div class="empty">Скоро здесь будут темы.</div>'}</div>`;
+  }
+
+  /* -------------------------------------------------- SIGNS (справочник знаков) */
+  function signRows(list, withCat) {
+    return `<div class="sign-list">` + list.map(s => `<div class="sign-row">
+      <img class="sign-row__img" src="assets/signs/sign_${s.num}.png" alt="${esc(s.num)}" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div class="sign-row__body"><div class="sign-row__head"><span class="sign-row__num">${esc(s.num)}</span> <b>${esc(s.name)}</b>${withCat ? ` <span class="sign-row__cat">${esc(s.cat)}</span>` : ''}</div>
+      <div class="sign-row__txt">${s.explain || ''}</div></div></div>`).join('') + `</div>`;
+  }
+  function renderSignsHub() {
+    crumb.innerHTML = `<a href="#/" data-link>Главная</a> <span>›</span> <b>Дорожные знаки</b>`;
+    topActions.innerHTML = '';
+    const cards = SIGNS.map(c => `<a class="cat-card" href="#/signs/${c.slug}" data-link>
+      <div class="cat-card__ico">${c.icon}</div>
+      <div class="cat-card__title">${esc(c.title)}</div>
+      <div class="cat-card__meta"><span class="pill pill--cyan">${plural(c.signs.length, ['знак', 'знака', 'знаков'])}</span></div>
+    </a>`).join('');
+    view.innerHTML = `
+      <div class="lesson-head"><h1>🚸 Дорожные знаки</h1><p style="color:var(--text-2)">Все ${signsCount} знаков по разделам — с картинкой и кратким объяснением. Можно искать по номеру или названию.</p></div>
+      <input id="signSearch" class="sign-search" type="search" placeholder="🔎 Поиск: номер или название (3.24, обгон, парковка…)" autocomplete="off">
+      <div id="signResults"></div>
+      <div id="signCats"><div class="cat-grid">${cards}</div></div>`;
+    const all = SIGNS.flatMap(c => c.signs.map(s => ({ ...s, cat: c.title })));
+    const inp = $('#signSearch'), res = $('#signResults'), catsEl = $('#signCats');
+    inp.oninput = () => {
+      const q = inp.value.trim().toLowerCase();
+      if (!q) { res.innerHTML = ''; catsEl.style.display = ''; return; }
+      catsEl.style.display = 'none';
+      const m = all.filter(s => s.num.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+      res.innerHTML = `<div class="section-title">Найдено: ${m.length}</div>` + (m.length ? signRows(m, true) : '<div class="empty">Ничего не найдено</div>');
+    };
+  }
+  function renderSignsCat(slug) {
+    const c = SIGNS.find(x => x.slug === slug); if (!c) return renderSignsHub();
+    crumb.innerHTML = `<a href="#/" data-link>Главная</a> <span>›</span> <a href="#/signs" data-link>Знаки</a> <span>›</span> <b>${esc(c.title)}</b>`;
+    topActions.innerHTML = '';
+    view.innerHTML = `<div class="lesson-head"><h1>${c.icon} ${esc(c.title)}</h1><div class="lesson-meta"><span class="pill">${plural(c.signs.length, ['знак', 'знака', 'знаков'])}</span></div></div>${signRows(c.signs, false)}`;
+    window.scrollTo(0, 0);
   }
 
   /* -------------------------------------------------- TOPIC / LESSON */
@@ -621,6 +662,8 @@
     app.classList.remove('nav-open');
     if (h === '#/' || parts[0] === '') renderHome();
     else if (parts[0] === 'cat') renderCategory(parts[1]);
+    else if (parts[0] === 'signs' && parts[1]) renderSignsCat(parts[1]);
+    else if (parts[0] === 'signs') renderSignsHub();
     else if (parts[0] === 'topic') renderTopic(parts[1]);
     else if (parts[0] === 'exam' && !parts[1]) renderExamHub();
     else if (parts[0] === 'exam' && parts[1] === 'sim') examSim();

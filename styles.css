@@ -396,6 +396,19 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border: 0; bord
 .blitz-mode:hover { border-color: var(--amber); color: var(--text); }
 .blitz-mode.is-active { background: var(--amber-glow); color: var(--amber-soft); border-color: transparent; }
 
+/* --- Справочник знаков --- */
+.sign-search { width: 100%; padding: 13px 16px; margin-bottom: 18px; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); background: var(--surface); color: var(--text); font-size: 15px; font-family: var(--font); }
+.sign-search:focus { outline: none; border-color: var(--amber); }
+.sign-list { display: flex; flex-direction: column; gap: 10px; }
+.sign-row { display: flex; gap: 14px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); align-items: flex-start; }
+.sign-row__img { width: 64px; height: 64px; flex: none; object-fit: contain; background: #fff; border-radius: 8px; padding: 4px; }
+.sign-row__body { min-width: 0; }
+.sign-row__head { margin-bottom: 4px; line-height: 1.4; }
+.sign-row__num { font-family: var(--mono); font-weight: 800; color: var(--amber); margin-right: 4px; }
+.sign-row__cat { font-size: 11px; color: var(--text-3); border: 1px solid var(--border-soft); border-radius: 999px; padding: 1px 8px; margin-left: 4px; white-space: nowrap; }
+.sign-row__txt { color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.sign-row__txt strong { color: var(--text); }
+
 .result { text-align: center; padding: 30px 20px; animation: fadeUp .4s var(--ease); }
 .result__icon { font-size: 64px; }
 .result__title { font-size: 30px; margin: 8px 0; }
